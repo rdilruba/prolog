@@ -1,0 +1,167 @@
+%        KNOWLEDGE BASE 
+
+team(konyaspor, konya).
+team(basaksehir, istanbul).
+team(galatasaray, istanbul).
+team(bursaspor, bursa).
+team(karabukspor, karabuk).
+team(trabzonspor, trabzon).
+team(besiktas, istanbul).
+team(fenerbahce, istanbul).
+team(antepspor, antep).
+team(antalyaspor, antalya).
+team(ankaragucu, ankara).
+team(genclerbirligi, ankara).
+team(rizespor, rize).
+team(goztepe, izmir).
+
+match(1, galatasaray, 1, konyaspor, 6).
+match(1, antalyaspor, 1, basaksehir, 1).
+match(1, fenerbahce, 4, besiktas, 2).
+match(1, genclerbirligi, 0, ankaragucu, 2).
+match(1, antepspor, 1, karabukspor, 2).
+match(1, trabzonspor, 2, bursaspor, 1).
+match(1, rizespor, 2, goztepe, 1).
+
+match(2, bursaspor, 2, rizespor, 2).
+match(2, konyaspor, 4, antalyaspor, 0).
+match(2, basaksehir, 2, fenerbahce, 3).
+match(2, besiktas, 1, genclerbirligi, 1).
+match(2, ankaragucu, 3, antepspor, 0).
+match(2, karabukspor, 2, trabzonspor, 0).
+match(2, galatasaray, 2, goztepe, 1).
+
+match(3, trabzonspor, 3, goztepe, 1).
+match(3, bursaspor, 2, konyaspor, 1).
+match(3, antalyaspor, 1, antepspor, 0).
+match(3, fenerbahce, 4, karabukspor, 0).
+match(3, genclerbirligi, 1, galatasaray, 2).
+match(3, ankaragucu, 1, basaksehir, 2).
+match(3, rizespor, 2, besiktas, 1).
+
+match(4, basaksehir, 1, trabzonspor, 0).
+match(4, besiktas, 2, bursaspor, 2).
+match(4, konyaspor, 0, genclerbirligi, 5).
+match(4, antepspor, 4, fenerbahce, 0).
+match(4, karabukspor, 4, antalyaspor, 2).
+match(4, galatasaray, 0, rizespor, 1).
+match(4, goztepe, 2, ankaragucu, 1).
+
+match(5, antalyaspor, 4, bursaspor, 1).
+match(5, genclerbirligi, 3, antepspor, 1).
+match(5, karabukspor, 0, galatasaray, 0).
+match(5, besiktas, 0, ankaragucu, 0).
+match(5, basaksehir, 3, rizespor, 1).
+match(5, fenerbahce, 2, trabzonspor, 0).
+match(5, goztepe, 2, konyaspor, 1).
+
+
+
+match(6, trabzonspor, 1, antepspor, 0).
+match(6, antalyaspor, 0, bursaspor, 2).
+match(6, genclerbirligi, 1, basaksehir, 0).
+match(6, galatasaray, 2, besiktas, 0).
+match(6, ankaragucu, 1, karabukspor, 2).
+match(6, konyaspor, 2, fenerbahce, 0).
+
+
+
+/*In allTeams I first find all teams with built-in function and put them
+in list L. Then I find its length and other possible lists. */
+allTeams(L, N) :- findall(X,team(X,_),L1), length(L1,N), permutation(L1,L).
+
+/*this rule looks matches played between weeks 1 and W, then finds 
+teams which given team T defeated. */
+calc_w(T, W,X) :-      between(1,W,Z),
+			match(Z,T,A,X,Y),A>Y.
+			
+
+/*this rule finds all teams by calling calc_w and using findall.Then
+appends all home and away teams which are defeated. */		      
+wins(T, W, L, N) :- findall(X1,calc_w(T,W,X1),L1),
+			findall(X1,calc_l(X1,W,T),L2), append(L1,L2,Li),
+length(Li,N), permutation(Li,L).
+
+/*this rule looks matches played between weeks 1 and W, then finds 
+teams which defeated given team T. */
+calc_l(T, W,X) :-      between(1,W,Z),
+			match(Z,T,A,X,Y),A<Y.
+/*this rule finds all teams by calling calc_l and using findall.Then
+appends all home and away teams which defeated team T. */	
+losses(T, W, L, N) :- findall(X1,calc_l(T,W,X1),L1),
+			findall(X1,calc_w(X1,W,T),L2), append(L1,L2,Li),
+length(Li,N), permutation(Li,L).
+
+/*this rule looks matches played between weeks 1 and W, then finds 
+teams which given team T neither defeated nor defeated by someone. */
+calc_d(T,W,X):-between(1,W,Z),
+			match(Z,T,A,X,Y),A=Y.
+/*this rule finds all teams by calling calc_w and using findall.Then
+appends all home and away teams which are neither defeated nor 
+by defeated. */	
+draws(T, W, L, N) :- findall(X1,calc_d(T,W,X1),L1),
+			findall(X1,calc_d(X1,W,T),L2), append(L1,L2,Li),
+length(Li,N), permutation(Li,L).
+
+/*this rule calculates avarage by looking each match the team T
+played.And finds difference of goals scored and conceded at each week.
+Then adds them to find overall avarage. */	
+calc_av(_, 0, A1, _, A) :- A is A1.
+calc_av(T, Z, Av, W, A) :- Z>0,
+		  findall(At,match(Z,T,At,_,_),L1),
+		  findall(Y,match(Z,T,_,_,Y),L2),
+		  findall(At,match(Z,_,_,T,At),L3), 
+		  findall(Y,match(Z,_,Y,T,_),L4),
+		  append(L1,L3,LA),append(L2,L4,LY),
+		  [H1|_]=LA, [H2|_]=LY, A1 is Av+H1-H2,
+		   Z1 is Z-1,
+		  calc_av(T, Z1, A1, W,A).
+avarage(T, W, A) :- calc_av(T,W,0,W,A).
+
+
+/*this rule calculates scored goals by looking each match the team T
+played.Then adds scored goals at each week to find all goals scored. */
+calc_sc(_, 0, _, S) :- write(S).
+calc_sc(T, Z, W, S) :- 
+		  findall(At,match(Z,T,At,_,_),L1),
+		  findall(At,match(Z,_,_,T,At),L2), 
+		  append(L1,L2,LA),
+		  [S1|_]=LA, Z1 is Z-1, S2 is S+S1,
+		  calc_sc(T, Z1, W, S2).
+scored(T, W, _) :- calc_sc(T, W, W, 0).
+/*this rule calculates conceded goals by looking each match the team T
+played.Then adds conceded goals at each week to find all goals conceded. */
+calc_con(_, 0, _, C) :- write(C).
+
+calc_con(T, Z, W, C):- findall(Y,match(Z,T,_,_,Y),L1),
+		   findall(Y,match(Z,_,Y,T,_),L2), append(L1,L2,LY),
+		   [C1|_]=LY, Z1 is Z-1, C2 is C+C1,
+		  calc_con(T, Z1, W, C2).
+conceded(T, W, _) :- calc_con(T, W, W, 0).
+
+/*this rule finds avarage of given team and creates a list
+which has team,avarage pairs. */
+add_a([],0,_,_,La,L3) :- append(La,[],L3).
+add_a(L1,N,L,W,La,L3) :- N>0,[H|T]=L1,avarage(H, W, A),N1 is N-1,
+			 append(La,[[A,H]],L),add_a(T,N1,_,W,L,L3).
+/*this rule gets rid of avarage of given team and creates a list
+which has only teams. */
+take_l([],L,La) :- append(La,[],L).			
+take_l(L4,L,La) :-length(L4,N),N>0, [H|T]=L4,[_|T1]=H,
+append(La,T1,Ls),take_l(T,L,Ls).
+/*To find order,  I used findall to get all teams. Then I created a
+second list which have team and avarage as a pair by calling add_a.
+Then I sorted that list with respect to avarages with built in
+function sort.Then I got rid of avarages and found final list which
+just have ordered teams by calling take_l.*/
+order(L, W) :- findall(X,team(X,_),L1),length(L1,N),
+		add_a(L1,N,_,W,[],L3), sort(0,  @>=, L3,  L4),
+		take_l(L4,L,[]).
+
+/*To find top three, first I used order to get the current ordering.
+Then I took first three element of that list. */
+topThree([T1,T2, T3],W) :- order(L,W),[H1|Ta1]=L,[H2|Ta2]=Ta1,
+				[H3|_]=Ta2,[T1,T2, T3]=[H1, H2, H3].
+
+		
+		
